@@ -1,40 +1,43 @@
 import { useState } from "react";
 import { Star, Grid, List } from "lucide-react";
-// We no longer need axios here because we are not making an API call
-// export default function ShopPage({ recommendations = [], cartItems, setCartItems }) { // This line is likely from your main.jsx
+
 export default function Shop({
   recommendations = [],
   cartItems,
   setCartItems,
 }) {
-  // Corrected prop name
   const [viewMode, setViewMode] = useState("grid");
 
+  // --- FIX #1: Define the base URL for your Django server's media files ---
+  const djangoServerUrl = "http://127.0.0.1:8001/media/";
+
   const addToCart = (productToAdd) => {
-    // This function now updates the local state managed by main.jsx
     setCartItems((prevItems) => {
       const existingItem = prevItems.find(
         (item) => item.id === productToAdd.id
       );
       if (existingItem) {
-        // If item exists, increase its quantity
         return prevItems.map((item) =>
           item.id === productToAdd.id
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
       }
-      // Otherwise, add the new item with quantity 1
       return [...prevItems, { ...productToAdd, quantity: 1 }];
     });
-    alert(`${productToAdd.productDisplayName} has been added to your bag!`);
+    alert(
+      `${
+        productToAdd.productDisplayName || productToAdd.name
+      } has been added to your bag!`
+    );
   };
 
   const renderProductCard = (product) => (
     <div key={product.id} className="col">
       <div className="card h-100 shadow-sm">
+        {/* --- FIX #2: Construct the full image URL using the correct property name --- */}
         <img
-          src={product.image_url}
+          src={`${djangoServerUrl}${product.image}`}
           alt={product.productDisplayName}
           className="card-img-top"
           style={{ height: "300px", objectFit: "cover" }}
@@ -73,7 +76,8 @@ export default function Shop({
                   id: product.id,
                   name: product.productDisplayName,
                   price: product.price_inr,
-                  image: product.image_url,
+                  // --- FIX #3: Use the full URL for the cart item image as well ---
+                  image: `${djangoServerUrl}${product.image}`,
                 })
               }
             >
