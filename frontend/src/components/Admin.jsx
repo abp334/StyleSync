@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Edit, Trash2, PlusCircle } from "lucide-react";
+import { Edit, Trash2, PlusCircle, LogOut } from "lucide-react";
 
 // Define the base URL for your API, now pointing to port 8000.
 const API_BASE_URL = "http://localhost:8000/api/admin";
@@ -15,7 +15,7 @@ const getApiEndpoint = (tab) => {
   }
 };
 
-export default function Admin() {
+export default function Admin({ handleLogout }) {
   const [activeTab, setActiveTab] = useState("products");
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -353,9 +353,18 @@ export default function Admin() {
   return (
     <>
       <div className="container py-5">
-        <div className="text-center mb-5">
-          <h2 className="fw-light">Admin Dashboard</h2>
-          <p className="text-muted">Manage your website's content</p>
+        <div className="d-flex justify-content-between align-items-center mb-5">
+          <div className="text-center flex-grow-1">
+            <h2 className="fw-light">Admin Dashboard</h2>
+            <p className="text-muted">Manage your website's content</p>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="btn btn-outline-danger d-flex align-items-center gap-2"
+          >
+            <LogOut size={16} />
+            Logout
+          </button>
         </div>
         <div className="card shadow-sm">
           <div className="card-header bg-white border-0">
