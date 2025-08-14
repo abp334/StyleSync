@@ -47,49 +47,54 @@ export default function Home() {
   return (
     <div className="min-vh-100 bg-light">
       {/* Hero Section */}
-      <header className="text-white text-center d-flex align-items-center justify-content-center"
-  style={{
-    height: "100vh",
-    backgroundImage: "url('/images/hero.jpg')",
-    backgroundSize: "cover",
-    backgroundPosition: "center",
-    backgroundRepeat: "no-repeat",
-    position: "relative",
-  }}
->
-  {/* Overlay */}
-  <div
-    style={{
-      position: "absolute",
-      top: 0,
-      left: 0,
-      width: "100%",
-      height: "100%",
-      backgroundColor: "rgba(0, 0, 0, 0.5)",
-      zIndex: 1,
-    }}
-  />
+      <header
+        className="text-white text-center d-flex align-items-center justify-content-center"
+        style={{
+          height: "100vh",
+          backgroundImage: "url('/images/hero.jpg')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+          position: "relative",
+        }}
+      >
+        {/* Overlay */}
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            zIndex: 1,
+          }}
+        />
 
-  {/* Content */}
-  <div style={{ zIndex: 2 }}>
-    <h1 className="display-3 fw-light mb-4">Elevate Your Ethnic Style</h1>
-    <p className="lead mb-4">
-      Discover India's latest fashion trends, from modern wear to classic ethnic looks
-    </p>
-    <Link
-        to="/shop"
-        className="btn btn-light btn-lg px-4 py-2 rounded-pill d-inline-flex align-items-center gap-2"
-        style={{ zIndex: 2 }}>Shop Now <ArrowRight size={20} />
-    </Link>
-  </div>
-</header>
-
+        {/* Content */}
+        <div style={{ zIndex: 2 }}>
+          <h1 className="display-3 fw-light mb-4">Elevate Your Ethnic Style</h1>
+          <p className="lead mb-4">
+            Discover India's latest fashion trends, from modern wear to classic
+            ethnic looks
+          </p>
+          <Link
+            to="/shop"
+            className="btn btn-light btn-lg px-4 py-2 rounded-pill d-inline-flex align-items-center gap-2"
+            style={{ zIndex: 2 }}
+          >
+            Shop Now <ArrowRight size={20} />
+          </Link>
+        </div>
+      </header>
 
       {/* Featured Products */}
       <section className="py-5">
         <div className="container text-center mb-5">
           <h2 className="fw-light mb-3">Featured Collections</h2>
-          <p className="text-muted">Curated styles for every Indian celebration</p>
+          <p className="text-muted">
+            Curated styles for every Indian celebration
+          </p>
         </div>
         <div className="container">
           <div className="row g-4">
@@ -111,15 +116,27 @@ export default function Home() {
                         <Star
                           key={i}
                           size={16}
-                          className={i < Math.floor(product.rating) ? "text-warning" : "text-muted"}
-                          fill={i < Math.floor(product.rating) ? "currentColor" : "none"}
+                          className={
+                            i < Math.floor(product.rating)
+                              ? "text-warning"
+                              : "text-muted"
+                          }
+                          fill={
+                            i < Math.floor(product.rating)
+                              ? "currentColor"
+                              : "none"
+                          }
                         />
                       ))}
-                      <span className="ms-2 small text-muted">({product.rating})</span>
+                      <span className="ms-2 small text-muted">
+                        ({product.rating})
+                      </span>
                     </div>
                     <div className="d-flex justify-content-between align-items-center">
                       <span className="h5 text-danger">{product.price}</span>
-                      <button className="btn btn-danger btn-sm rounded-pill">Add to Cart</button>
+                      <button className="btn btn-danger btn-sm rounded-pill">
+                        Add to Cart
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -142,7 +159,12 @@ export default function Home() {
                 <div className="bg-light p-4 h-100 rounded text-center">
                   <div className="mb-3">
                     {[...Array(testimonial.rating)].map((_, i) => (
-                      <Star key={i} size={20} className="text-warning" fill="currentColor" />
+                      <Star
+                        key={i}
+                        size={20}
+                        className="text-warning"
+                        fill="currentColor"
+                      />
                     ))}
                   </div>
                   <p className="fst-italic text-muted">"{testimonial.text}"</p>
