@@ -8,10 +8,13 @@ from fashion_clip.fashion_clip import FashionCLIP
 from insightface.app import FaceAnalysis
 from django.conf import settings
 import logging
+from PIL import Image
+import io
 
 logger = logging.getLogger(__name__)
 logger.info("Initializing AI models...")
 
+# --- Model and Metadata Loading (No Changes) ---
 try:
     face_app = FaceAnalysis(name="buffalo_l", providers=["CPUExecutionProvider"])
     face_app.prepare(ctx_id=0)
@@ -24,8 +27,13 @@ except Exception as e:
 
 logger.info("Loading product metadata from CSVs...")
 try:
-    styles_path = "/Users/aayushpandya/Desktop/Java/ VS Code Projects/StyleSync/fashion_project/datasets/myntradataset/styles.csv"
-    prices_path = "/Users/aayushpandya/Desktop/Java/ VS Code Projects/StyleSync/fashion_project/datasets/myntradataset/clothing_prices.csv"
+    # Adjusted path to be relative to Django's BASE_DIR for better portability
+    styles_path = os.path.join(
+        settings.BASE_DIR, "datasets", "myntradataset", "styles.csv"
+    )
+    prices_path = os.path.join(
+        settings.BASE_DIR, "datasets", "myntradataset", "clothing_prices.csv"
+    )
 
     styles_df = pd.read_csv(styles_path, on_bad_lines="skip")
     prices_df = pd.read_csv(prices_path)
@@ -39,6 +47,7 @@ except Exception as e:
     metadata_df = None
 
 
+# --- Helper Functions (No Changes) ---
 def apply_clahe(image_bgr):
     lab = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2LAB)
     l, a, b = cv2.split(lab)
@@ -108,53 +117,61 @@ def infer_age_group(age):
         return "senior"
 
 
-def recommend_outfit(prompt, features, catalog, top_k=25):
-    if not fclip_model:
-        return []
-    text_features = fclip_model.encode_text([prompt], batch_size=1)
-    image_features = torch.tensor(features, dtype=torch.float32)
-    similarity_scores = image_features @ text_features[0].T
-    top_indices = torch.topk(similarity_scores, k=top_k).indices
-    return [catalog[i]["image"] for i in top_indices]
+# --- CORRECTED RECOMMENDATION LOGIC ---
 
 
 def get_recommendations(uploaded_file, season, usage):
-    if not face_app or not fclip_model:
-        raise ValueError("AI models are not available.")
-    if metadata_df is None:
-        raise ValueError("Product metadata is not available.")
+    if not fclip_model or metadata_df is None:
+        raise ValueError("AI models or product metadata are not available.")
 
     try:
         image_bytes = uploaded_file.read()
-        image_np = np.frombuffer(image_bytes, np.uint8)
-        image_bgr = cv2.imdecode(image_np, cv2.IMREAD_COLOR)
+        image_pil = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+        image_bgr = cv2.cvtColor(np.array(image_pil), cv2.COLOR_RGB2BGR)
 
-        skin_tone = detect_skin_tone(image_bgr)
-        age, gender = get_age_gender(image_bgr)
-
-        if not all([skin_tone, age, gender]):
-            raise ValueError("Could not detect face or features.")
-
-        age_group = infer_age_group(age)
-        prompt = f"{usage} outfit for a {age_group} {gender.lower()} with {skin_tone} skin in {season}"
-        logger.info(f"Generated Prompt: {prompt}")
-
+        # --- Load Cached Data ---
         features_path = os.path.join(
             settings.BASE_DIR, "stylist_app", "pkl", "cached_image_features.pkl"
         )
         catalog_path = os.path.join(
             settings.BASE_DIR, "stylist_app", "pkl", "cached_catalog.pkl"
         )
-
         with open(features_path, "rb") as f:
             features = pickle.load(f)
         with open(catalog_path, "rb") as f:
             catalog = pickle.load(f)
 
-        outfit_paths = recommend_outfit(prompt, features, catalog, top_k=25)
+        catalog_features = torch.tensor(features, dtype=torch.float32)
+        top_indices = []
+
+        # --- METHOD 1: Try Face-Based Text-to-Image Search ---
+        age, gender = get_age_gender(image_bgr)
+        if age is not None and gender is not None:
+            skin_tone = detect_skin_tone(image_bgr) or "neutral"
+            age_group = infer_age_group(age)
+            prompt = f"{usage} outfit for a {age_group} {gender.lower()} with {skin_tone} skin in {season}"
+            logger.info(f"SUCCESS: Face detected. Using prompt: '{prompt}'")
+
+            text_features = fclip_model.encode_text([prompt], batch_size=1)
+            text_similarity = catalog_features @ text_features[0].T
+            top_indices = torch.topk(text_similarity, k=25).indices
+
+        # --- METHOD 2: Fallback to Image-to-Image Similarity ---
+        else:
+            logger.info(
+                "INFO: No face detected. Falling back to image similarity search."
+            )
+            uploaded_image_features = fclip_model.encode_images(
+                [image_pil], batch_size=1
+            )
+            image_similarity = catalog_features @ uploaded_image_features[0].T
+            top_indices = torch.topk(image_similarity, k=25).indices
+
+        # --- Process and Return Results ---
+        recommendation_paths = [catalog[i]["image"] for i in top_indices]
 
         results = []
-        for path in outfit_paths:
+        for path in recommendation_paths:
             try:
                 image_id = int(os.path.basename(path).split(".")[0])
                 product_details = metadata_df.loc[image_id]
@@ -163,9 +180,7 @@ def get_recommendations(uploaded_file, season, usage):
                         "id": image_id,
                         "productDisplayName": product_details["productDisplayName"],
                         "price_inr": product_details["price_inr"],
-                        "image": os.path.basename(
-                            path
-                        ),  # Just the filename, e.g., '12345.jpg'
+                        "image": os.path.basename(path),
                     }
                 )
             except (KeyError, ValueError):
