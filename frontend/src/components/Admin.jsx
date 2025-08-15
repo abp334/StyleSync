@@ -3,10 +3,12 @@ import axios from "axios";
 import { Edit, Trash2, PlusCircle, LogOut, X } from "lucide-react";
 
 const API_BASE_URL = "http://localhost:8000/api/admin";
+
 const getApiEndpoint = (tab) =>
   ({
     products: `${API_BASE_URL}/products`,
     fashionfests: `${API_BASE_URL}/fests`,
+    complaints: `${API_BASE_URL}/complaints`,
   }[tab]);
 
 export default function Admin({ handleLogout }) {
@@ -18,23 +20,29 @@ export default function Admin({ handleLogout }) {
   const [isEditing, setIsEditing] = useState(false);
   const [currentItem, setCurrentItem] = useState(null);
 
+  const fetchData = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("No admin token found");
+      const response = await axios.get(getApiEndpoint(activeTab), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setData(response.data);
+    } catch (err) {
+      setError(`Failed to fetch ${activeTab}. Please try again.`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      setError("");
-      try {
-        const response = await axios.get(getApiEndpoint(activeTab));
-        setData(response.data);
-      } catch (err) {
-        setError(`Failed to fetch ${activeTab}. Please try again.`);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchData();
   }, [activeTab]);
 
   const handleOpenDrawer = (item = null) => {
+    if (activeTab === "complaints") return;
     const defaultItem = {
       products: {
         name: "",
@@ -69,13 +77,14 @@ export default function Admin({ handleLogout }) {
       ? `${getApiEndpoint(activeTab)}/${currentItem._id}`
       : getApiEndpoint(activeTab);
     const method = isEditing ? "put" : "post";
+    const token = localStorage.getItem("token");
     try {
-      const response = await axios[method](url, currentItem);
+      const response = await axios[method](url, currentItem, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       setData(
         isEditing
-          ? data.map((item) =>
-              item._id === currentItem._id ? response.data : item
-            )
+          ? data.map((d) => (d._id === currentItem._id ? response.data : d))
           : [...data, response.data]
       );
       handleCloseDrawer();
@@ -90,11 +99,30 @@ export default function Admin({ handleLogout }) {
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this item?")) {
       try {
-        await axios.delete(`${getApiEndpoint(activeTab)}/${id}`);
-        setData(data.filter((item) => item._id !== id));
+        const token = localStorage.getItem("token");
+        await axios.delete(`${getApiEndpoint(activeTab)}/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setData(data.filter((d) => d._id !== id));
       } catch (err) {
         alert("Failed to delete item.");
       }
+    }
+  };
+
+  const handleStatusChange = async (id, newStatus) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.put(
+        `${API_BASE_URL}/complaints/${id}`,
+        { status: newStatus },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setData(data.map((item) => (item._id === id ? response.data : item)));
+    } catch (error) {
+      alert("Failed to update status.");
     }
   };
 
@@ -168,24 +196,31 @@ export default function Admin({ handleLogout }) {
                 isActive={activeTab === "fashionfests"}
                 onClick={() => setActiveTab("fashionfests")}
               />
+              <TabButton
+                text="Manage Complaints"
+                isActive={activeTab === "complaints"}
+                onClick={() => setActiveTab("complaints")}
+              />
             </div>
-            <button
-              onClick={() => handleOpenDrawer()}
-              style={{
-                background: "#111",
-                color: "white",
-                border: "none",
-                padding: "10px 16px",
-                borderRadius: "50px",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                fontWeight: 500,
-              }}
-            >
-              <PlusCircle size={18} /> Add New
-            </button>
+            {activeTab !== "complaints" && (
+              <button
+                onClick={() => handleOpenDrawer()}
+                style={{
+                  background: "#111",
+                  color: "white",
+                  border: "none",
+                  padding: "10px 16px",
+                  borderRadius: "50px",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  fontWeight: 500,
+                }}
+              >
+                <PlusCircle size={18} /> Add New
+              </button>
+            )}
           </div>
 
           {loading ? (
@@ -202,6 +237,7 @@ export default function Admin({ handleLogout }) {
               activeTab={activeTab}
               handleEdit={handleOpenDrawer}
               handleDelete={handleDelete}
+              handleStatusChange={handleStatusChange}
             />
           )}
         </div>
@@ -239,11 +275,17 @@ const TabButton = ({ text, isActive, onClick }) => (
   </button>
 );
 
-const DataTable = ({ data, activeTab, handleEdit, handleDelete }) => {
-  // ... same as before
+const DataTable = ({
+  data,
+  activeTab,
+  handleEdit,
+  handleDelete,
+  handleStatusChange,
+}) => {
   const headers = {
     products: ["Image", "Name", "Category", "Price"],
     fashionfests: ["Name", "Location", "City", "Start Date"],
+    complaints: ["Date", "From", "Subject & Message", "Status"],
   };
 
   return (
@@ -283,61 +325,123 @@ const DataTable = ({ data, activeTab, handleEdit, handleDelete }) => {
           {data.map((item) => (
             <tr key={item._id} style={{ borderBottom: "1px solid #f0f0f0" }}>
               {activeTab === "products" && (
-                <td>
-                  <img
-                    src={item.imageUrl || "https://placehold.co/60"}
-                    alt={item.name}
-                    style={{
-                      width: "40px",
-                      height: "40px",
-                      objectFit: "cover",
-                      borderRadius: "4px",
-                      margin: "8px 16px",
-                    }}
-                  />
-                </td>
-              )}
-              <td style={{ padding: "12px 16px", fontWeight: 500 }}>
-                {item.name}
-              </td>
-              {activeTab === "products" && (
                 <>
+                  <td>
+                    <img
+                      src={item.imageUrl || "https://placehold.co/60"}
+                      alt={item.name}
+                      style={{
+                        width: "40px",
+                        height: "40px",
+                        objectFit: "cover",
+                        borderRadius: "4px",
+                        margin: "8px 16px",
+                      }}
+                    />
+                  </td>
+                  <td style={{ padding: "12px 16px", fontWeight: 500 }}>
+                    {item.name}
+                  </td>
                   <td>{item.category}</td>
                   <td>₹{item.price}</td>
                 </>
               )}
               {activeTab === "fashionfests" && (
                 <>
+                  <td style={{ padding: "12px 16px", fontWeight: 500 }}>
+                    {item.name}
+                  </td>
                   <td>{item.location}</td>
                   <td>{item.city}</td>
                   <td>{new Date(item.startDate).toLocaleDateString()}</td>
                 </>
               )}
-              <td style={{ padding: "12px 16px", textAlign: "right" }}>
-                <button
-                  onClick={() => handleEdit(item)}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    color: "#999",
-                    marginRight: "1rem",
-                  }}
-                >
-                  <Edit size={16} />
-                </button>
-                <button
-                  onClick={() => handleDelete(item._id)}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    color: "#ef4444",
-                  }}
-                >
-                  <Trash2 size={16} />
-                </button>
-              </td>
+              {activeTab === "complaints" && (
+                <>
+                  <td style={{ padding: "12px 16px" }}>
+                    {new Date(item.createdAt).toLocaleDateString()}
+                  </td>
+                  <td style={{ padding: "12px 16px", fontWeight: 500 }}>
+                    {item.name} <br />
+                    <span style={{ color: "#888", fontSize: "0.8rem" }}>
+                      {item.email}
+                    </span>
+                  </td>
+                  <td style={{ padding: "12px 16px" }}>
+                    <details>
+                      <summary style={{ cursor: "pointer", fontWeight: 500 }}>
+                        {item.subject}
+                      </summary>
+                      <p
+                        style={{
+                          marginTop: "0.5rem",
+                          fontSize: "0.9rem",
+                          color: "#555",
+                          paddingTop: "0.5rem",
+                          borderTop: "1px solid #eee",
+                        }}
+                      >
+                        {item.message}
+                      </p>
+                    </details>
+                  </td>
+                  <td>
+                    <select
+                      value={item.status}
+                      onChange={(e) =>
+                        handleStatusChange(item._id, e.target.value)
+                      }
+                      style={{
+                        padding: "4px 8px",
+                        borderRadius: "4px",
+                        border: "1px solid #ccc",
+                        backgroundColor:
+                          item.status === "Resolved"
+                            ? "#e6fffa"
+                            : item.status === "In Progress"
+                            ? "#fffbeb"
+                            : "#f3f4f6",
+                      }}
+                    >
+                      <option value="New">New</option>
+                      <option value="In Progress">In Progress</option>
+                      <option value="Resolved">Resolved</option>
+                    </select>
+                  </td>
+                </>
+              )}
+
+              {activeTab !== "complaints" ? (
+                <td style={{ padding: "12px 16px", textAlign: "right" }}>
+                  <button
+                    onClick={() => handleEdit(item)}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      color: "#999",
+                      marginRight: "1rem",
+                    }}
+                  >
+                    {" "}
+                    <Edit size={16} />{" "}
+                  </button>
+                  <button
+                    onClick={() => handleDelete(item._id)}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      color: "#ef4444",
+                    }}
+                  >
+                    {" "}
+                    <Trash2 size={16} />{" "}
+                  </button>
+                </td>
+              ) : (
+                <td></td>
+              )}
             </tr>
           ))}
         </tbody>
@@ -402,42 +506,58 @@ const FormDrawer = ({
   };
 
   const renderFormFields = () => {
-    // ... (This function will render the correct inputs based on the tab)
-    // This is a simplified version for brevity
     return Object.keys(item)
-      .filter((key) => key !== "_id" && key !== "__v")
-      .map((key) => (
-        <div key={key} style={{ marginBottom: "1rem" }}>
-          <label
-            style={{
-              display: "block",
-              marginBottom: "0.5rem",
-              fontWeight: 500,
-              textTransform: "capitalize",
-            }}
-          >
-            {key}
-          </label>
-          <input
-            type={
-              key.includes("Date")
-                ? "date"
-                : key === "price"
-                ? "number"
-                : "text"
-            }
-            name={key}
-            value={item[key]?.split("T")[0] || ""}
-            onChange={handleInputChange}
-            style={{
-              width: "100%",
-              padding: "10px",
-              borderRadius: "6px",
-              border: "1px solid #ddd",
-            }}
-          />
-        </div>
-      ));
+      .filter(
+        (key) =>
+          key !== "_id" &&
+          key !== "__v" &&
+          key !== "createdAt" &&
+          key !== "updatedAt"
+      )
+      .map((key) => {
+        // FIX: This logic now correctly handles different data types
+        let value = item[key];
+        if (
+          (key === "startDate" || key === "endDate") &&
+          typeof value === "string" &&
+          value.includes("T")
+        ) {
+          value = value.split("T")[0];
+        }
+
+        return (
+          <div key={key} style={{ marginBottom: "1rem" }}>
+            <label
+              style={{
+                display: "block",
+                marginBottom: "0.5rem",
+                fontWeight: 500,
+                textTransform: "capitalize",
+              }}
+            >
+              {key.replace(/([A-Z])/g, " $1").trim()}
+            </label>
+            <input
+              type={
+                key.includes("Date")
+                  ? "date"
+                  : key === "price"
+                  ? "number"
+                  : "text"
+              }
+              name={key}
+              value={value || ""}
+              onChange={handleInputChange}
+              style={{
+                width: "100%",
+                padding: "10px",
+                borderRadius: "6px",
+                border: "1px solid #ddd",
+              }}
+            />
+          </div>
+        );
+      });
   };
 
   return (

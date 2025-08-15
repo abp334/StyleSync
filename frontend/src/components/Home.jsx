@@ -50,7 +50,7 @@ export default function Home({ setCartItems }) {
           textAlign: "center",
           color: "white",
           position: "relative",
-          backgroundImage: "url('/images/hero.jpg')",
+          backgroundImage: "url('/images/image.png')",
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}
