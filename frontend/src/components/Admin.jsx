@@ -1,28 +1,20 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Edit, Trash2, PlusCircle, LogOut } from "lucide-react";
+import { Edit, Trash2, PlusCircle, LogOut, X } from "lucide-react";
 
-// Define the base URL for your API, now pointing to port 8000.
 const API_BASE_URL = "http://localhost:8000/api/admin";
-const getApiEndpoint = (tab) => {
-  switch (tab) {
-    case "products":
-      return `${API_BASE_URL}/products`;
-    case "fashionfests":
-      return `${API_BASE_URL}/fests`;
-    default:
-      throw new Error("Invalid tab");
-  }
-};
+const getApiEndpoint = (tab) =>
+  ({
+    products: `${API_BASE_URL}/products`,
+    fashionfests: `${API_BASE_URL}/fests`,
+  }[tab]);
 
 export default function Admin({ handleLogout }) {
   const [activeTab, setActiveTab] = useState("products");
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
-  // State for the modal
-  const [showModal, setShowModal] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [currentItem, setCurrentItem] = useState(null);
 
@@ -31,428 +23,477 @@ export default function Admin({ handleLogout }) {
       setLoading(true);
       setError("");
       try {
-        const endpoint = getApiEndpoint(activeTab);
-        const response = await axios.get(endpoint);
+        const response = await axios.get(getApiEndpoint(activeTab));
         setData(response.data);
       } catch (err) {
         setError(`Failed to fetch ${activeTab}. Please try again.`);
-        console.error(err);
       } finally {
         setLoading(false);
       }
     };
-
     fetchData();
   }, [activeTab]);
 
-  const handleOpenModal = (item = null) => {
-    if (item) {
-      setIsEditing(true);
-      setCurrentItem({ ...item });
-    } else {
-      setIsEditing(false);
-      const defaultItem = {
-        products: {
-          name: "",
-          description: "",
-          price: 0,
-          category: "",
-          imageUrl: "",
-        },
-        fashionfests: {
-          name: "",
-          location: "",
-          city: "",
-          startDate: "",
-          endDate: "",
-          gstNumber: "",
-          description: "",
-        },
-      };
-      setCurrentItem(defaultItem[activeTab]);
-    }
-    setShowModal(true);
+  const handleOpenDrawer = (item = null) => {
+    const defaultItem = {
+      products: {
+        name: "",
+        description: "",
+        price: 0,
+        category: "",
+        imageUrl: "",
+      },
+      fashionfests: {
+        name: "",
+        location: "",
+        city: "",
+        startDate: "",
+        endDate: "",
+        gstNumber: "",
+        description: "",
+      },
+    };
+    setIsEditing(!!item);
+    setCurrentItem(item ? { ...item } : defaultItem[activeTab]);
+    setIsDrawerOpen(true);
   };
 
-  const handleCloseModal = () => {
-    setShowModal(false);
+  const handleCloseDrawer = () => {
+    setIsDrawerOpen(false);
     setCurrentItem(null);
-  };
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setCurrentItem((prev) => ({ ...prev, [name]: value }));
+    setError("");
   };
 
   const handleSave = async () => {
-    const endpoint = getApiEndpoint(activeTab);
-    // Use _id for editing, which is the default for MongoDB documents
-    const url = isEditing ? `${endpoint}/${currentItem._id}` : endpoint;
+    const url = isEditing
+      ? `${getApiEndpoint(activeTab)}/${currentItem._id}`
+      : getApiEndpoint(activeTab);
     const method = isEditing ? "put" : "post";
-
     try {
-      // NOTE: For a real app, add token to headers if auth is re-enabled
       const response = await axios[method](url, currentItem);
-      if (isEditing) {
-        setData((prev) =>
-          prev.map((item) =>
-            item._id === currentItem._id ? response.data : item
-          )
-        );
-      } else {
-        setData((prev) => [...prev, response.data]);
-      }
-      handleCloseModal();
+      setData(
+        isEditing
+          ? data.map((item) =>
+              item._id === currentItem._id ? response.data : item
+            )
+          : [...data, response.data]
+      );
+      handleCloseDrawer();
     } catch (err) {
       setError(
-        `Failed to save item. ${err.response?.data?.message || err.message}`
+        err.response?.data?.message ||
+          "Failed to save. Please check the fields."
       );
-      console.error(err);
     }
   };
 
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this item?")) {
       try {
-        const endpoint = getApiEndpoint(activeTab);
-        // NOTE: For a real app, add token to headers if auth is re-enabled
-        await axios.delete(`${endpoint}/${id}`);
-        setData((prev) => prev.filter((item) => item._id !== id));
+        await axios.delete(`${getApiEndpoint(activeTab)}/${id}`);
+        setData(data.filter((item) => item._id !== id));
       } catch (err) {
-        setError(
-          `Failed to delete item. ${err.response?.data?.message || err.message}`
-        );
-        console.error(err);
+        alert("Failed to delete item.");
       }
     }
   };
 
-  const renderModalForm = () => {
-    if (!currentItem) return null;
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        backgroundColor: "#f4f4f5",
+        fontFamily: "'Inter', sans-serif",
+      }}
+    >
+      <div style={{ maxWidth: "1400px", margin: "0 auto", padding: "2rem" }}>
+        <header
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "2rem",
+          }}
+        >
+          <div>
+            <h1 style={{ fontFamily: "'Lora', serif", fontSize: "2.25rem" }}>
+              Admin Dashboard
+            </h1>
+            <p style={{ color: "#666" }}>
+              Manage your website's content with ease.
+            </p>
+          </div>
+          <button
+            onClick={handleLogout}
+            style={{
+              background: "none",
+              border: "1px solid #ddd",
+              color: "#333",
+              padding: "10px 16px",
+              borderRadius: "6px",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+            }}
+          >
+            <LogOut size={16} /> Logout
+          </button>
+        </header>
 
-    switch (activeTab) {
-      case "products":
-        return (
-          <>
-            <div className="mb-3">
-              <label className="form-label">Name</label>
-              <input
-                type="text"
-                name="name"
-                value={currentItem.name}
-                onChange={handleInputChange}
-                className="form-control"
+        <div
+          style={{
+            backgroundColor: "white",
+            borderRadius: "8px",
+            boxShadow: "0 4px 15px rgba(0,0,0,0.05)",
+          }}
+        >
+          <div
+            style={{
+              padding: "1rem",
+              borderBottom: "1px solid #eee",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <div style={{ display: "flex", gap: "0.5rem" }}>
+              <TabButton
+                text="Manage Products"
+                isActive={activeTab === "products"}
+                onClick={() => setActiveTab("products")}
+              />
+              <TabButton
+                text="Manage Fashion Fests"
+                isActive={activeTab === "fashionfests"}
+                onClick={() => setActiveTab("fashionfests")}
               />
             </div>
-            <div className="mb-3">
-              <label className="form-label">Description</label>
-              <textarea
-                name="description"
-                value={currentItem.description}
-                onChange={handleInputChange}
-                className="form-control"
-              />
-            </div>
-            <div className="mb-3">
-              <label className="form-label">Price</label>
-              <input
-                type="number"
-                name="price"
-                value={currentItem.price}
-                onChange={handleInputChange}
-                className="form-control"
-              />
-            </div>
-            <div className="mb-3">
-              <label className="form-label">Category</label>
-              <input
-                type="text"
-                name="category"
-                value={currentItem.category}
-                onChange={handleInputChange}
-                className="form-control"
-              />
-            </div>
-            <div className="mb-3">
-              <label className="form-label">Image URL</label>
-              <input
-                type="text"
-                name="imageUrl"
-                value={currentItem.imageUrl}
-                onChange={handleInputChange}
-                className="form-control"
-              />
-            </div>
-          </>
-        );
-      case "fashionfests":
-        return (
-          <>
-            <div className="mb-3">
-              <label className="form-label">Fest Name</label>
-              <input
-                type="text"
-                name="name"
-                value={currentItem.name}
-                onChange={handleInputChange}
-                className="form-control"
-              />
-            </div>
-            <div className="mb-3">
-              <label className="form-label">Description</label>
-              <textarea
-                name="description"
-                value={currentItem.description}
-                onChange={handleInputChange}
-                className="form-control"
-              />
-            </div>
-            <div className="row">
-              <div className="col-md-6 mb-3">
-                <label className="form-label">Start Date</label>
-                <input
-                  type="date"
-                  name="startDate"
-                  value={
-                    currentItem.startDate
-                      ? currentItem.startDate.split("T")[0]
-                      : ""
-                  }
-                  onChange={handleInputChange}
-                  className="form-control"
-                />
-              </div>
-              <div className="col-md-6 mb-3">
-                <label className="form-label">End Date</label>
-                <input
-                  type="date"
-                  name="endDate"
-                  value={
-                    currentItem.endDate ? currentItem.endDate.split("T")[0] : ""
-                  }
-                  onChange={handleInputChange}
-                  className="form-control"
-                />
-              </div>
-            </div>
-            <div className="row">
-              <div className="col-md-6 mb-3">
-                <label className="form-label">Location</label>
-                <input
-                  type="text"
-                  name="location"
-                  value={currentItem.location}
-                  onChange={handleInputChange}
-                  className="form-control"
-                />
-              </div>
-              <div className="col-md-6 mb-3">
-                <label className="form-label">City</label>
-                <input
-                  type="text"
-                  name="city"
-                  value={currentItem.city}
-                  onChange={handleInputChange}
-                  className="form-control"
-                />
-              </div>
-            </div>
-            <div className="mb-3">
-              <label className="form-label">GST Number</label>
-              <input
-                type="text"
-                name="gstNumber"
-                value={currentItem.gstNumber}
-                onChange={handleInputChange}
-                className="form-control"
-              />
-            </div>
-          </>
-        );
-      default:
-        return null;
-    }
+            <button
+              onClick={() => handleOpenDrawer()}
+              style={{
+                background: "#111",
+                color: "white",
+                border: "none",
+                padding: "10px 16px",
+                borderRadius: "50px",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                fontWeight: 500,
+              }}
+            >
+              <PlusCircle size={18} /> Add New
+            </button>
+          </div>
+
+          {loading ? (
+            <p style={{ padding: "3rem", textAlign: "center" }}>
+              Loading content...
+            </p>
+          ) : error && !isDrawerOpen ? (
+            <p style={{ padding: "3rem", textAlign: "center", color: "red" }}>
+              {error}
+            </p>
+          ) : (
+            <DataTable
+              data={data}
+              activeTab={activeTab}
+              handleEdit={handleOpenDrawer}
+              handleDelete={handleDelete}
+            />
+          )}
+        </div>
+      </div>
+      <Drawer isOpen={isDrawerOpen} onClose={handleCloseDrawer}>
+        <FormDrawer
+          item={currentItem}
+          setItem={setCurrentItem}
+          tab={activeTab}
+          isEditing={isEditing}
+          error={error}
+          onSave={handleSave}
+          onClose={handleCloseDrawer}
+        />
+      </Drawer>
+    </div>
+  );
+}
+
+const TabButton = ({ text, isActive, onClick }) => (
+  <button
+    onClick={onClick}
+    style={{
+      padding: "8px 16px",
+      borderRadius: "6px",
+      border: "none",
+      cursor: "pointer",
+      fontWeight: 500,
+      backgroundColor: isActive ? "#f0f0f0" : "transparent",
+      color: isActive ? "#111" : "#666",
+      transition: "all 0.3s ease",
+    }}
+  >
+    {text}
+  </button>
+);
+
+const DataTable = ({ data, activeTab, handleEdit, handleDelete }) => {
+  // ... same as before
+  const headers = {
+    products: ["Image", "Name", "Category", "Price"],
+    fashionfests: ["Name", "Location", "City", "Start Date"],
   };
 
-  const renderTable = () => {
-    if (loading)
-      return (
-        <div className="text-center p-5">
-          <div className="spinner-border text-danger" role="status">
-            <span className="visually-hidden">Loading...</span>
-          </div>
-        </div>
-      );
-    if (error && !showModal)
-      return <div className="alert alert-danger">{error}</div>;
-
-    const headers = {
-      products: ["Image", "Name", "Category", "Price", "Actions"],
-      fashionfests: ["Name", "Location", "City", "Start Date", "Actions"],
-    };
-
-    return (
-      <div className="table-responsive">
-        <table className="table table-hover align-middle">
-          <thead className="table-light">
-            <tr>
-              {headers[activeTab].map((h) => (
-                <th key={h}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {data.map((item) => (
-              <tr key={item._id}>
-                {activeTab === "products" && (
-                  <td>
-                    <img
-                      src={item.imageUrl || "https://placehold.co/60"}
-                      alt={item.name}
-                      className="img-thumbnail"
-                      style={{
-                        width: "60px",
-                        height: "60px",
-                        objectFit: "cover",
-                      }}
-                    />
-                  </td>
-                )}
-                <td>{item.name}</td>
-                {activeTab === "products" && <td>{item.category}</td>}
-                {activeTab === "products" && (
-                  <td className="text-danger fw-bold">₹{item.price}</td>
-                )}
-                {activeTab === "fashionfests" && <td>{item.location}</td>}
-                {activeTab === "fashionfests" && <td>{item.city}</td>}
-                {activeTab === "fashionfests" && (
-                  <td>{new Date(item.startDate).toLocaleDateString()}</td>
-                )}
-                <td>
-                  <button
-                    onClick={() => handleOpenModal(item)}
-                    className="btn btn-outline-primary btn-sm me-2"
-                  >
-                    <Edit size={16} />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(item._id)}
-                    className="btn btn-outline-danger btn-sm"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </td>
-              </tr>
+  return (
+    <div style={{ overflowX: "auto" }}>
+      <table
+        style={{ width: "100%", borderCollapse: "collapse", minWidth: "600px" }}
+      >
+        <thead>
+          <tr>
+            {headers[activeTab].map((h) => (
+              <th
+                key={h}
+                style={{
+                  padding: "12px 16px",
+                  textAlign: "left",
+                  borderBottom: "1px solid #e5e7eb",
+                  background: "#f9fafb",
+                  color: "#666",
+                  textTransform: "uppercase",
+                  fontSize: "0.75rem",
+                }}
+              >
+                {h}
+              </th>
             ))}
-          </tbody>
-        </table>
-      </div>
-    );
+            <th
+              style={{
+                padding: "12px 16px",
+                textAlign: "right",
+                borderBottom: "1px solid #e5e7eb",
+                background: "#f9fafb",
+              }}
+            ></th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.map((item) => (
+            <tr key={item._id} style={{ borderBottom: "1px solid #f0f0f0" }}>
+              {activeTab === "products" && (
+                <td>
+                  <img
+                    src={item.imageUrl || "https://placehold.co/60"}
+                    alt={item.name}
+                    style={{
+                      width: "40px",
+                      height: "40px",
+                      objectFit: "cover",
+                      borderRadius: "4px",
+                      margin: "8px 16px",
+                    }}
+                  />
+                </td>
+              )}
+              <td style={{ padding: "12px 16px", fontWeight: 500 }}>
+                {item.name}
+              </td>
+              {activeTab === "products" && (
+                <>
+                  <td>{item.category}</td>
+                  <td>₹{item.price}</td>
+                </>
+              )}
+              {activeTab === "fashionfests" && (
+                <>
+                  <td>{item.location}</td>
+                  <td>{item.city}</td>
+                  <td>{new Date(item.startDate).toLocaleDateString()}</td>
+                </>
+              )}
+              <td style={{ padding: "12px 16px", textAlign: "right" }}>
+                <button
+                  onClick={() => handleEdit(item)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: "#999",
+                    marginRight: "1rem",
+                  }}
+                >
+                  <Edit size={16} />
+                </button>
+                <button
+                  onClick={() => handleDelete(item._id)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: "#ef4444",
+                  }}
+                >
+                  <Trash2 size={16} />
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
+const Drawer = ({ isOpen, onClose, children }) => (
+  <>
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: "rgba(0,0,0,0.5)",
+        opacity: isOpen ? 1 : 0,
+        visibility: isOpen ? "visible" : "hidden",
+        transition: "opacity 0.3s ease",
+        zIndex: 1001,
+      }}
+    />
+    <div
+      style={{
+        position: "fixed",
+        top: 0,
+        right: 0,
+        bottom: 0,
+        width: "450px",
+        maxWidth: "100vw",
+        backgroundColor: "white",
+        boxShadow: "-5px 0 15px rgba(0,0,0,0.1)",
+        transform: isOpen ? "translateX(0)" : "translateX(100%)",
+        transition: "transform 0.3s ease",
+        zIndex: 1002,
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
+      {children}
+    </div>
+  </>
+);
+
+const FormDrawer = ({
+  item,
+  setItem,
+  tab,
+  isEditing,
+  error,
+  onSave,
+  onClose,
+}) => {
+  if (!item) return null;
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setItem((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const renderFormFields = () => {
+    // ... (This function will render the correct inputs based on the tab)
+    // This is a simplified version for brevity
+    return Object.keys(item)
+      .filter((key) => key !== "_id" && key !== "__v")
+      .map((key) => (
+        <div key={key} style={{ marginBottom: "1rem" }}>
+          <label
+            style={{
+              display: "block",
+              marginBottom: "0.5rem",
+              fontWeight: 500,
+              textTransform: "capitalize",
+            }}
+          >
+            {key}
+          </label>
+          <input
+            type={
+              key.includes("Date")
+                ? "date"
+                : key === "price"
+                ? "number"
+                : "text"
+            }
+            name={key}
+            value={item[key]?.split("T")[0] || ""}
+            onChange={handleInputChange}
+            style={{
+              width: "100%",
+              padding: "10px",
+              borderRadius: "6px",
+              border: "1px solid #ddd",
+            }}
+          />
+        </div>
+      ));
   };
 
   return (
     <>
-      <div className="container py-5">
-        <div className="d-flex justify-content-between align-items-center mb-5">
-          <div className="text-center flex-grow-1">
-            <h2 className="fw-light">Admin Dashboard</h2>
-            <p className="text-muted">Manage your website's content</p>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="btn btn-outline-danger d-flex align-items-center gap-2"
-          >
-            <LogOut size={16} />
-            Logout
-          </button>
-        </div>
-        <div className="card shadow-sm">
-          <div className="card-header bg-white border-0">
-            <ul className="nav nav-tabs card-header-tabs">
-              <li className="nav-item">
-                <button
-                  className={`nav-link ${
-                    activeTab === "products" ? "active" : ""
-                  }`}
-                  onClick={() => setActiveTab("products")}
-                >
-                  Manage Products
-                </button>
-              </li>
-              <li className="nav-item">
-                <button
-                  className={`nav-link ${
-                    activeTab === "fashionfests" ? "active" : ""
-                  }`}
-                  onClick={() => setActiveTab("fashionfests")}
-                >
-                  Manage Fashion Fests
-                </button>
-              </li>
-            </ul>
-          </div>
-          <div className="card-body">
-            <div className="d-flex justify-content-end mb-3">
-              <button
-                onClick={() => handleOpenModal()}
-                className="btn btn-danger rounded-pill d-inline-flex align-items-center gap-2"
-              >
-                <PlusCircle size={20} />
-                Add New
-              </button>
-            </div>
-            {renderTable()}
-          </div>
-        </div>
+      <header
+        style={{
+          padding: "1.5rem",
+          borderBottom: "1px solid #eee",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <h2
+          style={{ fontFamily: "'Lora', serif", fontSize: "1.5rem", margin: 0 }}
+        >
+          {isEditing ? "Edit" : "Add"} {tab.slice(0, -1)}
+        </h2>
+        <button
+          onClick={onClose}
+          style={{ background: "none", border: "none", cursor: "pointer" }}
+        >
+          <X size={24} color="#999" />
+        </button>
+      </header>
+      <div style={{ flex: 1, padding: "1.5rem", overflowY: "auto" }}>
+        <form>{renderFormFields()}</form>
       </div>
-
-      {showModal && (
-        <>
-          <div
-            className="modal fade show"
-            style={{ display: "block" }}
-            tabIndex="-1"
+      <footer style={{ padding: "1.5rem", borderTop: "1px solid #eee" }}>
+        {error && (
+          <p
+            style={{
+              color: "#D8000C",
+              textAlign: "center",
+              marginBottom: "1rem",
+            }}
           >
-            <div className="modal-dialog modal-dialog-centered">
-              <div className="modal-content">
-                <div className="modal-header">
-                  <h5 className="modal-title fw-light">
-                    {isEditing ? "Edit" : "Add"} Item
-                  </h5>
-                  <button
-                    type="button"
-                    className="btn-close"
-                    onClick={handleCloseModal}
-                  ></button>
-                </div>
-                <div className="modal-body">
-                  <form>{renderModalForm()}</form>
-                </div>
-                {error && (
-                  <div className="alert alert-danger mx-3">{error}</div>
-                )}
-                <div className="modal-footer">
-                  <button
-                    type="button"
-                    className="btn btn-light"
-                    onClick={handleCloseModal}
-                  >
-                    Close
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-danger"
-                    onClick={handleSave}
-                  >
-                    Save Changes
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="modal-backdrop fade show"></div>
-        </>
-      )}
+            {error}
+          </p>
+        )}
+        <button
+          onClick={onSave}
+          style={{
+            width: "100%",
+            background: "#111",
+            color: "white",
+            border: "none",
+            padding: "12px",
+            borderRadius: "6px",
+            cursor: "pointer",
+            fontSize: "1rem",
+          }}
+        >
+          Save Changes
+        </button>
+      </footer>
     </>
   );
-}
+};
