@@ -4,6 +4,33 @@ import { Eye, EyeOff, Mail, Lock, User } from "lucide-react";
 import axios from "axios";
 import OtpVerification from "./OtpVerification";
 
+const PasswordStrengthIndicator = ({ password }) => {
+  const hasLowerCase = /[a-z]/.test(password);
+  const hasUpperCase = /[A-Z]/.test(password);
+  const hasNumber = /\d/.test(password);
+  const hasSpecialChar = /[@$!%*?&]/.test(password);
+  const hasMinLength = password.length >= 8;
+
+  const Requirement = ({ met, text }) => (
+    <li style={{ color: met ? "green" : "#666", fontSize: "0.8rem" }}>
+      {met ? "✔" : "❌"} {text}
+    </li>
+  );
+
+  return (
+    <ul style={{ listStyle: "none", padding: 0, marginTop: "0.5rem" }}>
+      <Requirement met={hasMinLength} text="At least 8 characters" />
+      <Requirement met={hasLowerCase} text="At least one lowercase letter" />
+      <Requirement met={hasUpperCase} text="At least one uppercase letter" />
+      <Requirement met={hasNumber} text="At least one number" />
+      <Requirement
+        met={hasSpecialChar}
+        text="At least one special character (@$!%*?&)"
+      />
+    </ul>
+  );
+};
+
 export default function LoginPage({ setIsAuthenticated, setUserRole }) {
   const [isLogin, setIsLogin] = useState(true);
   const [role, setRole] = useState("user");
@@ -248,6 +275,7 @@ const AuthForm = ({
           </button>
         }
       />
+      {!isLogin && <PasswordStrengthIndicator password={password} />}
       {!isLogin && (
         <Input
           icon={<Lock />}

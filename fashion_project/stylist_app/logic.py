@@ -14,7 +14,7 @@ import io
 logger = logging.getLogger(__name__)
 logger.info("Initializing AI models...")
 
-# --- Model and Metadata Loading (No Changes) ---
+
 try:
     face_app = FaceAnalysis(name="buffalo_l", providers=["CPUExecutionProvider"])
     face_app.prepare(ctx_id=0)
@@ -27,7 +27,7 @@ except Exception as e:
 
 logger.info("Loading product metadata from CSVs...")
 try:
-    # Adjusted path to be relative to Django's BASE_DIR for better portability
+
     styles_path = os.path.join(
         settings.BASE_DIR, "datasets", "myntradataset", "styles.csv"
     )
@@ -47,7 +47,6 @@ except Exception as e:
     metadata_df = None
 
 
-# --- Helper Functions (No Changes) ---
 def apply_clahe(image_bgr):
     lab = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2LAB)
     l, a, b = cv2.split(lab)
@@ -117,9 +116,6 @@ def infer_age_group(age):
         return "senior"
 
 
-# --- CORRECTED RECOMMENDATION LOGIC ---
-
-
 def get_recommendations(uploaded_file, season, usage):
     if not fclip_model or metadata_df is None:
         raise ValueError("AI models or product metadata are not available.")
@@ -129,7 +125,6 @@ def get_recommendations(uploaded_file, season, usage):
         image_pil = Image.open(io.BytesIO(image_bytes)).convert("RGB")
         image_bgr = cv2.cvtColor(np.array(image_pil), cv2.COLOR_RGB2BGR)
 
-        # --- Load Cached Data ---
         features_path = os.path.join(
             settings.BASE_DIR, "stylist_app", "pkl", "cached_image_features.pkl"
         )
@@ -144,7 +139,6 @@ def get_recommendations(uploaded_file, season, usage):
         catalog_features = torch.tensor(features, dtype=torch.float32)
         top_indices = []
 
-        # --- METHOD 1: Try Face-Based Text-to-Image Search ---
         age, gender = get_age_gender(image_bgr)
         if age is not None and gender is not None:
             skin_tone = detect_skin_tone(image_bgr) or "neutral"
@@ -156,7 +150,6 @@ def get_recommendations(uploaded_file, season, usage):
             text_similarity = catalog_features @ text_features[0].T
             top_indices = torch.topk(text_similarity, k=25).indices
 
-        # --- METHOD 2: Fallback to Image-to-Image Similarity ---
         else:
             logger.info(
                 "INFO: No face detected. Falling back to image similarity search."
@@ -167,7 +160,6 @@ def get_recommendations(uploaded_file, season, usage):
             image_similarity = catalog_features @ uploaded_image_features[0].T
             top_indices = torch.topk(image_similarity, k=25).indices
 
-        # --- Process and Return Results ---
         recommendation_paths = [catalog[i]["image"] for i in top_indices]
 
         results = []

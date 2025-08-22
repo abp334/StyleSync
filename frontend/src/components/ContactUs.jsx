@@ -71,14 +71,14 @@ export default function ContactUs() {
               For support, inquiries, or feedback.
             </p>
             <a
-              href="mailto:support@trendyware.com"
+              href="mailto:support@StyleSync.com"
               style={{
                 color: "#C19A6B",
                 fontWeight: 500,
                 textDecoration: "none",
               }}
             >
-              support@trendyware.com
+              support@StyleSync.com
             </a>
           </div>
 

@@ -8,10 +8,16 @@ require("dotenv").config();
 
 const app = express();
 const PORT = 8000;
-const JWT_SECRET = "your-super-secret-key-that-is-long-and-secure";
+const JWT_SECRET = "aayushbhaveshpandyaisback";
 
 app.use(cors({ origin: "http://localhost:5173", credentials: true }));
 app.use(express.json());
+
+const validatePassword = (password) => {
+  const passwordRegex =
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+  return passwordRegex.test(password);
+};
 
 mongoose
   .connect(
@@ -154,13 +160,13 @@ const adminAuthMiddleware = (req, res, next) => {
 const sendOtpEmail = async (email, otp) => {
   try {
     const info = await transporter.sendMail({
-      from: `"TrendyWare Support" <${process.env.EMAIL_USER}>`,
+      from: `"StyleSync Support" <${process.env.EMAIL_USER}>`,
       to: email,
-      subject: "Your TrendyWare Verification Code",
+      subject: "Your StyleSync Verification Code",
       html: `
         <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
           <h2 style="color: #111;">Verify Your Email Address</h2>
-          <p>Thank you for registering with TrendyWare. Please use the following One-Time Password (OTP) to complete your registration:</p>
+          <p>Thank you for registering with StyleSync. Please use the following One-Time Password (OTP) to complete your registration:</p>
           <p style="font-size: 24px; font-weight: bold; letter-spacing: 2px; color: #C19A6B; background-color: #f8f8f8; padding: 10px 15px; border-radius: 4px; display: inline-block;">${otp}</p>
           <p>This OTP is valid for 5 minutes.</p>
           <p>If you did not request this, you can safely ignore this email.</p>
@@ -190,9 +196,9 @@ const sendPurchaseReceiptEmail = async (userEmail, orderDetails) => {
     .join("");
   try {
     await transporter.sendMail({
-      from: `"TrendyWare" <${process.env.EMAIL_USER}>`,
+      from: `"StyleSync" <${process.env.EMAIL_USER}>`,
       to: userEmail,
-      subject: "Your TrendyWare Order Confirmation",
+      subject: "Your StyleSync Order Confirmation",
       html: `
         <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
           <h2 style="color: #111;">Thank you for your purchase!</h2>
@@ -229,6 +235,12 @@ const sendPurchaseReceiptEmail = async (userEmail, orderDetails) => {
 app.post("/signup", async (req, res) => {
   const { name, email, password } = req.body;
   try {
+    if (!validatePassword(password)) {
+      return res.status(400).json({
+        message:
+          "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character.",
+      });
+    }
     const userExists = await User.findOne({ email });
     if (userExists) {
       return res
@@ -247,12 +259,10 @@ app.post("/signup", async (req, res) => {
     const newOtp = new Otp({ email, otp });
     await newOtp.save();
     await sendOtpEmail(email, otp);
-    res
-      .status(200)
-      .json({
-        message:
-          "OTP sent to your email. Please verify to complete registration.",
-      });
+    res.status(200).json({
+      message:
+        "OTP sent to your email. Please verify to complete registration.",
+    });
   } catch (err) {
     res.status(500).json({ message: "Server error during signup." });
   }
@@ -261,6 +271,12 @@ app.post("/signup", async (req, res) => {
 app.post("/admin/signup", async (req, res) => {
   const { email, password } = req.body;
   try {
+    if (!validatePassword(password)) {
+      return res.status(400).json({
+        message:
+          "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character.",
+      });
+    }
     const adminExists = await Admin.findOne({ email });
     if (adminExists) {
       return res
@@ -296,11 +312,9 @@ app.post("/verify-otp", async (req, res) => {
     }
     const tempUser = await TempUser.findOne({ email, role: "user" });
     if (!tempUser) {
-      return res
-        .status(400)
-        .json({
-          message: "Registration session expired. Please sign up again.",
-        });
+      return res.status(400).json({
+        message: "Registration session expired. Please sign up again.",
+      });
     }
     const newUser = new User({
       name: tempUser.name,
@@ -327,11 +341,9 @@ app.post("/admin/verify-otp", async (req, res) => {
     }
     const tempUser = await TempUser.findOne({ email, role: "admin" });
     if (!tempUser) {
-      return res
-        .status(400)
-        .json({
-          message: "Registration session expired. Please sign up again.",
-        });
+      return res.status(400).json({
+        message: "Registration session expired. Please sign up again.",
+      });
     }
     const newAdmin = new Admin({
       email: tempUser.email,

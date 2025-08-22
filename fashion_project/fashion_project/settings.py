@@ -79,10 +79,8 @@ TIME_ZONE = "UTC"
 USE_I18N = True
 USE_TZ = True
 
-# --- CORRECTED FILE CONFIGURATION ---
 STATIC_URL = "/static/"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "datasets", "myntradataset", "images")
-# --- END OF CONFIGURATION ---
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

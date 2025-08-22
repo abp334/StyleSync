@@ -36,7 +36,7 @@ export default function TermsOfService() {
         <section style={sectionStyle}>
           <h2 style={h2Style}>1. Acceptance of Terms</h2>
           <p>
-            By accessing and using TrendyWare (the "Service"), you accept and
+            By accessing and using StyleSync (the "Service"), you accept and
             agree to be bound by the terms and provision of this agreement. If
             you do not agree to abide by these terms, please do not use this
             Service.
@@ -67,10 +67,10 @@ export default function TermsOfService() {
           <h2 style={h2Style}>4. Intellectual Property</h2>
           <p>
             The Service and its original content, features, and functionality
-            are and will remain the exclusive property of TrendyWare and its
+            are and will remain the exclusive property of StyleSync and its
             licensors. Our trademarks and trade dress may not be used in
             connection with any product or service without the prior written
-            consent of TrendyWare.
+            consent of StyleSync.
           </p>
         </section>
         <section style={sectionStyle}>

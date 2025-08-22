@@ -65,7 +65,7 @@ export default function Footer() {
               fontSize: "1.5rem",
             }}
           >
-            TrendyWare
+            StyleSync
           </h5>
           <p style={{ fontSize: "0.9rem", lineHeight: 1.7, color: "#aaa" }}>
             Crafting the future of fashion with a touch of heritage and a vision
@@ -196,7 +196,7 @@ export default function Footer() {
           color: "#777",
         }}
       >
-        &copy; {new Date().getFullYear()} TrendyWare. A New Era of Style.
+        &copy; {new Date().getFullYear()} StyleSync. A New Era of Style.
       </div>
     </footer>
   );

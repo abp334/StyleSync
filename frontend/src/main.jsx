@@ -14,7 +14,6 @@ import Admin from "./components/Admin.jsx";
 import NotFound from "./components/NotFound.jsx";
 import HelpWidget from "./components/HelpWidget.jsx";
 
-// Import the new pages
 import TermsOfService from "./components/TermsOfService.jsx";
 import PrivacyPolicy from "./components/PrivacyPolicy.jsx";
 import ContactUs from "./components/ContactUs.jsx";

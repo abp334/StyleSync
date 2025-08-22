@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { Star, MessageSquare, X } from "lucide-react";
 import axios from "axios";
+import { redirect } from "react-router-dom";
+import Cart from "./Cart";
 
-// --- ReviewsModal Component ---
 const ReviewsModal = ({ product, onClose }) => {
   const [reviews, setReviews] = useState([]);
   const [rating, setRating] = useState(5);
@@ -10,7 +11,7 @@ const ReviewsModal = ({ product, onClose }) => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const isAuthenticated = !!localStorage.getItem("token");
-  const [activeTab, setActiveTab] = useState("view"); // 'view' or 'add'
+  const [activeTab, setActiveTab] = useState("view");
 
   const fetchReviews = async () => {
     setLoading(true);
@@ -48,7 +49,7 @@ const ReviewsModal = ({ product, onClose }) => {
       );
       setComment("");
       setRating(5);
-      setActiveTab("view"); // Switch back to view reviews after posting
+      setActiveTab("view");
     } catch (err) {
       setError(err.response?.data?.message || "Failed to post review.");
     }
@@ -299,7 +300,7 @@ export default function Shop({
       }
       return [...prevItems, { ...productToAdd, quantity: 1 }];
     });
-    alert(`${productToAdd.name} has been added to your bag!`);
+    // alert(`${productToAdd.name} has been added to your bag!`);
   };
 
   const ProductCard = ({ product }) => {
@@ -307,7 +308,7 @@ export default function Shop({
     const productId = product.id || product._id;
     const productName = product.productDisplayName || product.name;
     const productPrice = product.price_inr || product.price;
-    let imageSource = "https://placehold.co/400x550/f0f0f0/ccc?text=TrendyWare";
+    let imageSource = "https://placehold.co/400x550/f0f0f0/ccc?text=StyleSync";
     if (product.imageUrl) imageSource = product.imageUrl;
     else if (product.image) imageSource = `${djangoServerUrl}${product.image}`;
 
