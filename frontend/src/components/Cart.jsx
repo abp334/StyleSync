@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ShoppingBag, Minus, Plus, Trash2 } from "lucide-react";
 import axios from "axios";
-import PaymentGateway from "./PaymentGateway"; // Import the new component
+import PaymentGateway from "./PaymentGateway";
 
 export default function Cart({ cartItems, setCartItems }) {
   const navigate = useNavigate();
