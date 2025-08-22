@@ -300,7 +300,7 @@ export default function Shop({
       }
       return [...prevItems, { ...productToAdd, quantity: 1 }];
     });
-    // alert(`${productToAdd.name} has been added to your bag!`);
+    alert(`${productToAdd.name} has been added to your bag!`);
   };
 
   const ProductCard = ({ product }) => {
